@@ -8,6 +8,11 @@ use App\Models\SubTasks;
 class TaskAndSubTaskService
 {
     /**
+     * @var array
+     * */
+    private $result;
+
+    /**
      * Constructor
      * @return void
      */
