@@ -16,7 +16,7 @@ class Tasks extends Migration
         Schema::create('tasks', function (Blueprint $table) {
             $table->bigIncrements('id');
             $table->string('task_title')->nullable();
-            $table->dateTime('task_due_date')->nullable();
+            $table->date('task_due_date')->nullable();
             $table->integer('task_status')->nullable();
             $table->softDeletes();                  
             $table->timestamps();
