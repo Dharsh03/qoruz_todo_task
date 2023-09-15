@@ -87,21 +87,22 @@ class TaskAndSubTaskService
         try {
             $tasks = Tasks::leftjoin('sub_tasks as st','st.task_id','=','tasks.id')->where('tasks.task_status',_pending())
             ->when(isset($params['search_key']) && !empty($params['search_key']), function ($query) use ($params) {
-                    $query->where('tasks.task_title', 'like', $params['search_key'] . '%')
-                        ->orWhere('st.sub_task_title', 'like', $params['search_key'] . '%');
+                $query->where(function ($subQuery) use ($params) {
+                    $subQuery->where('tasks.task_title', 'like', '%' . $params['search_key'] . '%')
+                        ->orWhere('st.sub_task_title', 'like', '%' . $params['search_key'] . '%');
+                });
             })
             ->when(isset($params['filter']) && !empty($params['filter']), function ($subQuery) use ($params) {
-                //filter will today,this_week,next_week,overdue
+                //filter => today, this_week, next_week, overdue
                 $date = $this->getFromAndToDate($params['filter']);
-                if($date){
-                    $subQuery->where('tasks.task_due_date','>=',$date['from_date'])
-                        ->where('tasks.task_due_date','<=',$date['to_date']);
+                if ($date) {
+                    $subQuery->where('tasks.task_due_date', '>=', $date['from_date'])
+                        ->where('tasks.task_due_date', '<=', $date['to_date']);
                 }
             })
             ->select('tasks.id as task_id','tasks.task_title','tasks.task_due_date')
             ->orderBy('tasks.task_due_date','asc')->groupBy('tasks.id','tasks.task_title','tasks.task_due_date')
             ->get()->toArray();
-            
             
             foreach($tasks as $key => $task){
                 $tasks[$key]['sub_tasks'] = SubTasks::where(['task_id' => $task['task_id'],'sub_task_status' =>_pending()])->select('id as sub_task_id','sub_task_title')->get()->toArray();
@@ -123,19 +124,20 @@ class TaskAndSubTaskService
         $currentDate = Carbon::now();
         switch ($filter){
             case 'today':
-                $fromDate = $toDate = date("Y-m-d");
+                $fromDate = $currentDate->format('Y-m-d 00:00:00');
+                $toDate = $currentDate->format('Y-m-d 23:59:59');
                 break;
             case 'this_week':
-                $fromDate = $currentDate->startOfWeek()->toDateString();
-                $toDate = $currentDate->endOfWeek()->toDateString();
+                $fromDate = $currentDate->startOfWeek()->format('Y-m-d 00:00:00');
+                $toDate = $currentDate->endOfWeek()->format('Y-m-d 23:59:59');
                 break;
             case 'next_week':
-                $fromDate = $currentDate->startOfWeek()->addWeek()->toDateString();
-                $toDate = $currentDate->endOfWeek()->toDateString();
+                $fromDate = $currentDate->startOfWeek()->addWeek()->format('Y-m-d 00:00:00');
+                $toDate = $currentDate->endOfWeek()->format('Y-m-d 23:59:59');
                 break;
             case 'overdue':
                 $fromDate = '';
-                $toDate = $currentDate->subDay()->toDateString();
+                $toDate = $currentDate->subDay()->format('Y-m-d 23:59:59');
                 break;
             default:
                 return [];
